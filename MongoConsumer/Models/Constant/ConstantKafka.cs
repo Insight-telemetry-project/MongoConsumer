@@ -5,5 +5,6 @@
         public const string KAFKA_ADDRESS = "localhost:9092";
         public const string TOPIC_NAME = "test-topic";
         public const string GROUP_ID = "mongo-consumer-group";
+        public const int SECONDS_TO_WAIT = 2;
     }
 }

@@ -7,14 +7,12 @@ namespace MongoConsumer.Services.Kafka
     public class KafkaConsumerService
     {
         private readonly List<string> _receivedMessages = new List<string>();
-        private bool _isListening = false;
+        private CancellationTokenSource? _cts;
 
         public async Task StartListeningAsync()
         {
-            if (_isListening)
-                return;
-
-            _isListening = true;
+            _cts = new CancellationTokenSource();
+            CancellationToken token = _cts.Token;
 
             ConsumerConfig config = new ConsumerConfig
             {
@@ -29,12 +27,13 @@ namespace MongoConsumer.Services.Kafka
                 using (IConsumer<Ignore, string> consumer = new ConsumerBuilder<Ignore, string>(config).Build())
                 {
                     consumer.Subscribe(ConstantKafka.TOPIC_NAME);
+                    Debug.WriteLine($"Kafka listener started on topic '{ConstantKafka.TOPIC_NAME}'.");
 
-                    while (true)
+                    while (!token.IsCancellationRequested)
                     {
                         try
                         {
-                            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(2));
+                            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
                             if (result != null && result.Message != null)
                             {
                                 lock (_receivedMessages)
@@ -48,8 +47,19 @@ namespace MongoConsumer.Services.Kafka
                             Debug.WriteLine($"Kafka error: {ex.Error.Reason}");
                         }
                     }
+                    consumer.Close();
+                    Debug.WriteLine("Kafka listener stopped gracefully.");
                 }
             });
+        }
+
+        public void StopListening()
+        {
+            if (_cts != null)
+            {
+                Debug.WriteLine("Stopping Kafka listener...");
+                _cts.Cancel();
+            }
         }
 
         public List<string> GetAllMessages()
@@ -59,5 +69,7 @@ namespace MongoConsumer.Services.Kafka
                 return new List<string>(_receivedMessages);
             }
         }
+        public bool IsListening => _cts != null && !_cts.IsCancellationRequested;
+
     }
 }
