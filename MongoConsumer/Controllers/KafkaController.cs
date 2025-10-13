@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using MongoConsumer.Services.Kafka;
 
 namespace MongoConsumer.Controllers
@@ -15,15 +14,14 @@ namespace MongoConsumer.Controllers
             _consumerService = consumerService;
         }
 
-        [HttpGet("test")]
-        public async Task<IActionResult> TestConsume()
+        [HttpGet("messages")]
+        public IActionResult GetMessages()
         {
-            List<string> messages = await _consumerService.ConsumeNewMessagesAsync(5);
+            List<string> messages = _consumerService.GetAllMessages();
 
             if (messages.Count == 0)
-            {
-                return Ok("No new messages received from Kafka.");
-            }
+                return Ok("No messages received yet.");
+
             return Ok(messages);
         }
     }

@@ -1,16 +1,15 @@
 using MongoConsumer.Services.Kafka;
+using MongoConsumer.Services.Application;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
-
 builder.Services.AddControllers();
-
-builder.Services.AddSingleton<KafkaConsumerService>();
-
 builder.Services.AddOpenApi();
 
-WebApplication app = builder.Build();
+builder.Services.AddSingleton<KafkaConsumerService>();
+builder.Services.AddSingleton<ApplicationStartup>();
 
+WebApplication app = builder.Build();
 
 if (app.Environment.IsDevelopment())
 {
@@ -18,9 +17,10 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
+
+ApplicationStartup startup = app.Services.GetRequiredService<ApplicationStartup>();
+startup.RegisterApplicationEvents();
 
 app.Run();
