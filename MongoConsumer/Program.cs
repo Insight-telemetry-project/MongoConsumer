@@ -1,12 +1,13 @@
 using MongoConsumer.Services.Kafka;
 using MongoConsumer.Services.Application;
+using MongoConsumer.Models.Interface;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
-builder.Services.AddSingleton<KafkaConsumerService>();
+builder.Services.AddSingleton<IKafkaConsumerService, KafkaConsumerService>();
 builder.Services.AddSingleton<ApplicationStartup>();
 
 WebApplication app = builder.Build();

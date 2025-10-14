@@ -1,12 +1,14 @@
 ﻿using Confluent.Kafka;
 using MongoConsumer.Models.Constant;
+using MongoConsumer.Models.Interface;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace MongoConsumer.Services.Kafka
 {
-    public class KafkaConsumerService
+    public class KafkaConsumerService : IKafkaConsumerService
     {
-        private readonly List<string> _receivedMessages = new List<string>();
+        private readonly List<object> _receivedMessages = new List<object>();
         private CancellationTokenSource? _cts;
 
         public async Task StartListeningAsync()
@@ -33,12 +35,26 @@ namespace MongoConsumer.Services.Kafka
                     {
                         try
                         {
-                            ConsumeResult<Ignore, string>? result = consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
+                            ConsumeResult<Ignore, string>? result =
+                                consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
+
                             if (result != null && result.Message != null)
                             {
-                                lock (_receivedMessages)
+                                try
                                 {
-                                    _receivedMessages.Add(result.Message.Value);
+                                    object? jsonObject = JsonSerializer.Deserialize<object>(result.Message.Value);
+
+                                    lock (_receivedMessages)
+                                    {
+                                        _receivedMessages.Add(jsonObject ?? result.Message.Value);
+                                    }
+                                }
+                                catch (JsonException)
+                                {
+                                    lock (_receivedMessages)
+                                    {
+                                        _receivedMessages.Add(result.Message.Value);
+                                    }
                                 }
                             }
                         }
@@ -47,6 +63,7 @@ namespace MongoConsumer.Services.Kafka
                             Debug.WriteLine($"Kafka error: {ex.Error.Reason}");
                         }
                     }
+
                     consumer.Close();
                     Debug.WriteLine("Kafka listener stopped gracefully.");
                 }
@@ -62,14 +79,14 @@ namespace MongoConsumer.Services.Kafka
             }
         }
 
-        public List<string> GetAllMessages()
+        public List<object> GetAllMessages()
         {
             lock (_receivedMessages)
             {
-                return new List<string>(_receivedMessages);
+                return new List<object>(_receivedMessages);
             }
         }
-        public bool IsListening => _cts != null && !_cts.IsCancellationRequested;
 
+        public bool IsListening => _cts != null && !_cts.IsCancellationRequested;
     }
 }

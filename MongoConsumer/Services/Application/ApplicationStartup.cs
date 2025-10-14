@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Hosting;
+using MongoConsumer.Models.Interface;
 using MongoConsumer.Services.Kafka;
 using System.Diagnostics;
 
@@ -6,11 +7,11 @@ namespace MongoConsumer.Services.Application
 {
     public class ApplicationStartup
     {
-        private readonly KafkaConsumerService _kafkaConsumerService;
+        private readonly IKafkaConsumerService _kafkaConsumerService;
         private readonly IHostApplicationLifetime _lifetime;
 
         public ApplicationStartup(
-            KafkaConsumerService kafkaConsumerService,
+            IKafkaConsumerService kafkaConsumerService,
             IHostApplicationLifetime lifetime)
         {
             _kafkaConsumerService = kafkaConsumerService;
