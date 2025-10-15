@@ -2,13 +2,12 @@ using MongoConsumer.Models.Configuration;
 using MongoConsumer.Models.Interface;
 using MongoConsumer.Services.Application;
 using MongoConsumer.Services.Kafka;
-using MongoConsumer.Services.Mongo;
 
 WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllers();
 builder.Services.Configure<MongoSettings>(
-    builder.Configuration.GetSection("MongoSettings"));
+    builder.Configuration.GetSection(MongoSettings.SectionName));
 
 builder.Services.AddOpenApi();
 
