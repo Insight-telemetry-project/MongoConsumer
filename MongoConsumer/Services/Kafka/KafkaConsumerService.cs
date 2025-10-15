@@ -1,4 +1,4 @@
-﻿using Confluent.Kafka;
+using Confluent.Kafka;
 using MongoConsumer.Models.Constant;
 using MongoConsumer.Models.Interface;
 using System.Diagnostics;
@@ -10,6 +10,12 @@ namespace MongoConsumer.Services.Kafka
     {
         private readonly List<object> _receivedMessages = new List<object>();
         private CancellationTokenSource? _cts;
+        private readonly ITelemetryRepository _repository;
+
+        public KafkaConsumerService(ITelemetryRepository repository)
+        {
+            _repository = repository;
+        }
 
         public async Task StartListeningAsync()
         {
