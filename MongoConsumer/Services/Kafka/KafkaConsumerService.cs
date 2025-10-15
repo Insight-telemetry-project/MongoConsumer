@@ -10,6 +10,12 @@ namespace MongoConsumer.Services.Kafka
     {
         private readonly List<object> _receivedMessages = new List<object>();
         private CancellationTokenSource? _cts;
+        private readonly ITelemetryRepository _repository;
+
+        public KafkaConsumerService(ITelemetryRepository repository)
+        {
+            _repository = repository;
+        }
 
         public async Task StartListeningAsync()
         {
@@ -24,7 +30,7 @@ namespace MongoConsumer.Services.Kafka
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            await Task.Run(() =>
+            await Task.Run(async () =>
             {
                 using (IConsumer<Ignore, string> consumer = new ConsumerBuilder<Ignore, string>(config).Build())
                 {
@@ -48,6 +54,9 @@ namespace MongoConsumer.Services.Kafka
                                     {
                                         _receivedMessages.Add(jsonObject ?? result.Message.Value);
                                     }
+
+                                    await _repository.InsertJsonAsync(result.Message.Value);
+                                    Debug.WriteLine("Message saved to MongoDB.");
                                 }
                                 catch (JsonException)
                                 {
