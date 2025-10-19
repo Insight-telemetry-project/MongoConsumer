@@ -12,7 +12,7 @@ builder.Services.Configure<MongoSettings>(
 builder.Services.AddOpenApi();
 
 builder.Services.AddSingleton<IKafkaConsumerService, KafkaConsumerService>();
-builder.Services.AddSingleton<ITelemetryRepository, TelemetryRepository>();
+builder.Services.AddSingleton<ITelemetryRepository, FlightTelemetryMongoProxy>();
 builder.Services.AddSingleton<ApplicationStartup>();
 
 WebApplication app = builder.Build();

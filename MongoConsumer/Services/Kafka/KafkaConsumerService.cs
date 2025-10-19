@@ -34,8 +34,7 @@ namespace MongoConsumer.Services.Kafka
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            await Task.Run(() => RunKafkaListener(config, token));
-
+            await Task.Run(() => ListenLoopAsync(config, token));
         }
 
         public void StopListening()
@@ -46,56 +45,31 @@ namespace MongoConsumer.Services.Kafka
             }
         }
 
-        public List<object> GetAllMessages()
-        {
-            lock (_receivedMessages)
-            {
-                return new List<object>(_receivedMessages);
-            }
-        }
 
-
-        private void RunKafkaListener(ConsumerConfig config, CancellationToken token)
+        private async Task ListenLoopAsync(ConsumerConfig config, CancellationToken token)
         {
-            using (IConsumer<Ignore, string> consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+            using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
             {
                 consumer.Subscribe(ConstantKafka.TOPIC_NAME);
 
                 while (!token.IsCancellationRequested)
                 {
-                    ConsumeAndProcessMessage(consumer);
+                    var result =
+                            consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
+
+                    if (result != null && result.Message != null)
+                    {
+                        await HandleMessageAsync(result.Message.Value);
+                    }
                 }
 
                 consumer.Close();
             }
         }
-        private void ConsumeAndProcessMessage(IConsumer<Ignore, string> consumer)
+        private async Task HandleMessageAsync(string message)
         {
-            ConsumeResult<Ignore, string>? result =
-                consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
-
-            ProcessMessage(result.Message.Value);
+            await _repository.InsertFlightTelemetryAsync(message);
         }
-        private void ProcessMessage(string messageValue)
-        {
-            try
-            {
-                object? jsonObject = JsonSerializer.Deserialize<object>(messageValue);
-                AddMessage(jsonObject ?? messageValue);
-            }
-            catch (JsonException)
-            {
-                AddMessage(messageValue);
-            }
-        }
-        private void AddMessage(object message)
-        {
-            lock (_receivedMessages)
-            {
-                _receivedMessages.Add(message);
-            }
-        }
-
 
 
         public bool IsListening => _cts != null && !_cts.IsCancellationRequested;

@@ -4,7 +4,6 @@
     {
         Task StartListeningAsync();
         void StopListening();
-        List<object> GetAllMessages();
         bool IsListening { get; }
     }
 }

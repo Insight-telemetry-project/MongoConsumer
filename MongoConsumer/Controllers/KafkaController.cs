@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using MongoConsumer.Models.Interface;
 using MongoConsumer.Services.Kafka;
 
@@ -13,21 +13,6 @@ namespace MongoConsumer.Controllers
         public KafkaController(IKafkaConsumerService consumerService)
         {
             _consumerService = consumerService;
-        }
-
-        [HttpGet("messages")]
-        public IActionResult GetMessages()
-        {
-            if (!_consumerService.IsListening)
-                return StatusCode(StatusCodes.Status503ServiceUnavailable,
-                    "Kafka listener is not running.");
-
-            List<object> messages = _consumerService.GetAllMessages();
-
-            if (messages.Count == 0)
-                return Ok("Kafka listener is running, but no messages have been received yet.");
-
-            return Ok(messages);
         }
 
 
