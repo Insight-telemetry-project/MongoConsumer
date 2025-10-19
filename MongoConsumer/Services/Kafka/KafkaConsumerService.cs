@@ -39,37 +39,30 @@ namespace MongoConsumer.Services.Kafka
 
                     while (!token.IsCancellationRequested)
                     {
-                        try
-                        {
-                            ConsumeResult<Ignore, string>? result =
+                        ConsumeResult<Ignore, string>? result =
                                 consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
 
-                            if (result != null && result.Message != null)
+                        if (result != null && result.Message != null)
+                        {
+                            try
                             {
-                                try
+                                object? jsonObject = JsonSerializer.Deserialize<object>(result.Message.Value);
+
+                                lock (_receivedMessages)
                                 {
-                                    object? jsonObject = JsonSerializer.Deserialize<object>(result.Message.Value);
-
-                                    lock (_receivedMessages)
-                                    {
-                                        _receivedMessages.Add(jsonObject ?? result.Message.Value);
-                                    }
-
-                                    await _repository.InsertJsonAsync(result.Message.Value);
-                                    Debug.WriteLine("Message saved to MongoDB.");
+                                    _receivedMessages.Add(jsonObject ?? result.Message.Value);
                                 }
-                                catch (JsonException)
+
+                                await _repository.InsertJsonAsync(result.Message.Value);
+                                Debug.WriteLine("Message saved to MongoDB.");
+                            }
+                            catch (JsonException)
+                            {
+                                lock (_receivedMessages)
                                 {
-                                    lock (_receivedMessages)
-                                    {
-                                        _receivedMessages.Add(result.Message.Value);
-                                    }
+                                    _receivedMessages.Add(result.Message.Value);
                                 }
                             }
-                        }
-                        catch (ConsumeException ex)
-                        {
-                            Debug.WriteLine($"Kafka error: {ex.Error.Reason}");
                         }
                     }
 
