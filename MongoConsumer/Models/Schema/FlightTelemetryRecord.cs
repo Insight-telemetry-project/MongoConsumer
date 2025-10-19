@@ -1,7 +1,7 @@
 ﻿using MongoDB.Bson.Serialization.Attributes;
 using System.Collections.Generic;
 
-public class TelemetryRecord
+public class FlightTelemetryRecord
 {
     [BsonElement("Fields")]
     public Dictionary<string, double> Fields { get; set; } = new();

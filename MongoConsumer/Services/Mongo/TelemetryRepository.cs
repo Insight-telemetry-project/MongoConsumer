@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 public class TelemetryRepository : ITelemetryRepository
 {
-    private readonly IMongoCollection<TelemetryRecord> telemetryCollection;
+    private readonly IMongoCollection<FlightTelemetryRecord> telemetryCollection;
 
     public TelemetryRepository(IOptions<MongoSettings> mongoOptions)
     {
@@ -28,7 +28,7 @@ public class TelemetryRepository : ITelemetryRepository
             mongoDatabase.CreateCollection(mongoSettings.CollectionName);
         }
 
-        telemetryCollection = mongoDatabase.GetCollection<TelemetryRecord>(mongoSettings.CollectionName);
+        telemetryCollection = mongoDatabase.GetCollection<FlightTelemetryRecord>(mongoSettings.CollectionName);
     }
 
     public async Task InsertJsonAsync(string jsonData)
@@ -60,7 +60,7 @@ public class TelemetryRepository : ITelemetryRepository
             }
         }
 
-        TelemetryRecord telemetryRecord = new TelemetryRecord
+        FlightTelemetryRecord telemetryRecord = new FlightTelemetryRecord
         {
             Timestep = timestepValue,
             MasterIndex = masterIndexValue,
