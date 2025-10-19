@@ -2,6 +2,6 @@
 {
     public interface ITelemetryRepository
     {
-        Task InsertJsonAsync(string json);
+        Task InsertFlightTelemetryAsync(string json);
     }
 }

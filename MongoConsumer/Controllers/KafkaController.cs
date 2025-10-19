@@ -15,19 +15,6 @@ namespace MongoConsumer.Controllers
             _consumerService = consumerService;
         }
 
-        [HttpGet("messages")]
-        public IActionResult GetMessages()
-        {
-            if (!_consumerService.IsListening)
-                return Ok("Kafka listener is not running.");
-
-            List<object> messages = _consumerService.GetAllMessages();
-
-            if (messages.Count == 0)
-                return Ok("No messages received yet.");
-
-            return Ok(messages);
-        }
 
         [HttpPost("stop")]
         public IActionResult StopKafkaListener()
