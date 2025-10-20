@@ -24,24 +24,17 @@ namespace MongoConsumer.Services.Application
         }
         private void OnApplicationStarted()
         {
-            Debug.WriteLine("Application has started. Launching Kafka listener...");
 
             Task.Run(async () =>
             {
-                try
-                {
-                    await _kafkaConsumerService.StartListeningAsync();
-                }
-                catch (Exception exception)
-                {
-                    Debug.WriteLine($"Kafka listener failed to start: {exception.Message}");
-                }
+                await _kafkaConsumerService.StartListeningAsync();
             });
         }
 
         private void OnApplicationStopping()
         {
-            Debug.WriteLine("Application is stopping. Cleaning up Kafka listener...");
+            _kafkaConsumerService.StopListening();
+
         }
     }
 }

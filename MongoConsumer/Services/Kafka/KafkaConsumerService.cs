@@ -13,6 +13,10 @@ namespace MongoConsumer.Services.Kafka
 
         public async Task StartListeningAsync()
         {
+            lock (_receivedMessages)
+            {
+                _receivedMessages.Clear();
+            }
             _cts = new CancellationTokenSource();
             CancellationToken token = _cts.Token;
 
@@ -24,57 +28,14 @@ namespace MongoConsumer.Services.Kafka
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            await Task.Run(() =>
-            {
-                using (IConsumer<Ignore, string> consumer = new ConsumerBuilder<Ignore, string>(config).Build())
-                {
-                    consumer.Subscribe(ConstantKafka.TOPIC_NAME);
-                    Debug.WriteLine($"Kafka listener started on topic '{ConstantKafka.TOPIC_NAME}'.");
+            await Task.Run(() => RunKafkaListener(config, token));
 
-                    while (!token.IsCancellationRequested)
-                    {
-                        try
-                        {
-                            ConsumeResult<Ignore, string>? result =
-                                consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
-
-                            if (result != null && result.Message != null)
-                            {
-                                try
-                                {
-                                    object? jsonObject = JsonSerializer.Deserialize<object>(result.Message.Value);
-
-                                    lock (_receivedMessages)
-                                    {
-                                        _receivedMessages.Add(jsonObject ?? result.Message.Value);
-                                    }
-                                }
-                                catch (JsonException)
-                                {
-                                    lock (_receivedMessages)
-                                    {
-                                        _receivedMessages.Add(result.Message.Value);
-                                    }
-                                }
-                            }
-                        }
-                        catch (ConsumeException ex)
-                        {
-                            Debug.WriteLine($"Kafka error: {ex.Error.Reason}");
-                        }
-                    }
-
-                    consumer.Close();
-                    Debug.WriteLine("Kafka listener stopped gracefully.");
-                }
-            });
         }
 
         public void StopListening()
         {
             if (_cts != null)
             {
-                Debug.WriteLine("Stopping Kafka listener...");
                 _cts.Cancel();
             }
         }
@@ -86,6 +47,50 @@ namespace MongoConsumer.Services.Kafka
                 return new List<object>(_receivedMessages);
             }
         }
+
+
+        private void RunKafkaListener(ConsumerConfig config, CancellationToken token)
+        {
+            using (IConsumer<Ignore, string> consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+            {
+                consumer.Subscribe(ConstantKafka.TOPIC_NAME);
+
+                while (!token.IsCancellationRequested)
+                {
+                    ConsumeAndProcessMessage(consumer);
+                }
+
+                consumer.Close();
+            }
+        }
+        private void ConsumeAndProcessMessage(IConsumer<Ignore, string> consumer)
+        {
+            ConsumeResult<Ignore, string>? result =
+                consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
+
+            ProcessMessage(result.Message.Value);
+        }
+        private void ProcessMessage(string messageValue)
+        {
+            try
+            {
+                object? jsonObject = JsonSerializer.Deserialize<object>(messageValue);
+                AddMessage(jsonObject ?? messageValue);
+            }
+            catch (JsonException)
+            {
+                AddMessage(messageValue);
+            }
+        }
+        private void AddMessage(object message)
+        {
+            lock (_receivedMessages)
+            {
+                _receivedMessages.Add(message);
+            }
+        }
+
+
 
         public bool IsListening => _cts != null && !_cts.IsCancellationRequested;
     }

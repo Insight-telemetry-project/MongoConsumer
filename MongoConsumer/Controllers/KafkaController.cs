@@ -19,15 +19,17 @@ namespace MongoConsumer.Controllers
         public IActionResult GetMessages()
         {
             if (!_consumerService.IsListening)
-                return Ok("Kafka listener is not running.");
+                return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                    "Kafka listener is not running.");
 
             List<object> messages = _consumerService.GetAllMessages();
 
             if (messages.Count == 0)
-                return Ok("No messages received yet.");
+                return Ok("Kafka listener is running, but no messages have been received yet.");
 
             return Ok(messages);
         }
+
 
         [HttpPost("stop")]
         public IActionResult StopKafkaListener()
@@ -35,5 +37,17 @@ namespace MongoConsumer.Controllers
             _consumerService.StopListening();
             return Ok("Kafka listener stopped.");
         }
+
+        [HttpPost("start")]
+        public IActionResult StartKafkaListener()
+        {
+            if (_consumerService.IsListening)
+                return Ok("Kafka listener is already running.");
+
+            _ = _consumerService.StartListeningAsync();
+
+            return Accepted("Kafka listener started.");
+        }
+
     }
 }
