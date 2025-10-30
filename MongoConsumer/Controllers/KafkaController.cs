@@ -29,10 +29,17 @@ namespace MongoConsumer.Controllers
             if (_consumerService.IsListening)
                 return Ok("Kafka listener is already running.");
 
-            _ = _consumerService.StartListeningAsync();
-
-            return Accepted("Kafka listener started.");
+            try
+            {
+                _consumerService.StartListeningAsync();
+                return Accepted("Kafka listener started in background.");
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, $"Failed to start Kafka listener");
+            }
         }
+
 
     }
 }

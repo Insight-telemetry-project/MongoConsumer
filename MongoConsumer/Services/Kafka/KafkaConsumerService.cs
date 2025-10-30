@@ -34,7 +34,7 @@ namespace MongoConsumer.Services.Kafka
                 AutoOffsetReset = AutoOffsetReset.Earliest
             };
 
-            await Task.Run(() => ListenLoopAsync(config, token));
+            await RunKafkaListenerAsync(config, token);
         }
 
         public void StopListening()
@@ -45,6 +45,10 @@ namespace MongoConsumer.Services.Kafka
             }
         }
 
+        private Task RunKafkaListenerAsync(ConsumerConfig config, CancellationToken token)
+        {
+            return Task.Run(() => ListenLoopAsync(config, token));
+        }
 
         private async Task ListenLoopAsync(ConsumerConfig config, CancellationToken token)
         {
