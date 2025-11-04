@@ -31,7 +31,7 @@ namespace MongoConsumer.Services.Kafka
                 BootstrapServers = ConstantKafka.KAFKA_ADDRESS,
                 GroupId = ConstantKafka.GROUP_ID,
                 EnableAutoCommit = true,
-                AutoOffsetReset = AutoOffsetReset.Earliest
+                AutoOffsetReset = AutoOffsetReset.Latest
             };
 
             await RunKafkaListenerAsync(config, token);
