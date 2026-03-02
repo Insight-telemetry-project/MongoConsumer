@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using MongoConsumer.Models.Dto;
 using MongoConsumer.Models.Interface;
 using MongoConsumer.Services.Kafka;
 
@@ -38,6 +39,17 @@ namespace MongoConsumer.Controllers
             {
                 return StatusCode(500, $"Failed to start Kafka listener");
             }
+        }
+
+
+
+
+        [HttpPost("update-expected-frames")]
+        public IActionResult UpdateExpectedFrames([FromBody] FlightFramesUpdateRequest request)
+        {
+            _consumerService.UpdateExpectedFrames(request.MasterIndex, request.ExpectedFrames);
+
+            return Ok($"Expected frames updated for flight {request.MasterIndex}");
         }
 
 
