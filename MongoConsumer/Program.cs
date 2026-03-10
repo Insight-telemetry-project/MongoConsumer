@@ -29,6 +29,8 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseAuthorization();
+app.UseCors("AllowAngularApp");
+
 app.MapControllers();
 
 ApplicationStartup startup = app.Services.GetRequiredService<ApplicationStartup>();
