@@ -11,13 +11,25 @@ namespace MongoConsumer.Services.Network
             _httpClient = httpClient;
         }
 
-        public async Task TriggerFullFlightAnalysisAsync(int masterIndex)
+        public Task TriggerFullFlightAnalysisAsync(int masterIndex)
         {
             string requestUri = $"TelemetryAnalyzer/analyze-full-flight/{masterIndex}";
 
-            HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    HttpResponseMessage response = await _httpClient.GetAsync(requestUri);
+                    response.EnsureSuccessStatusCode();
+                    Console.WriteLine($"[ANALYSIS DONE] Flight={masterIndex}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[ANALYSIS ERROR] Flight={masterIndex} | {ex.Message}");
+                }
+            });
 
-            response.EnsureSuccessStatusCode();
+            return Task.CompletedTask;
         }
     }
 }
