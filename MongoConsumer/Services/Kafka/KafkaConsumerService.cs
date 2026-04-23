@@ -1,4 +1,6 @@
 ﻿using Confluent.Kafka;
+using Microsoft.Extensions.Options;
+using MongoConsumer.Models.Configuration;
 using MongoConsumer.Models.Constant;
 using MongoConsumer.Models.Interface;
 using System.Diagnostics;
@@ -11,6 +13,7 @@ namespace MongoConsumer.Services.Kafka
         private readonly List<object> _receivedMessages = new List<object>();
         private CancellationTokenSource? _cts;
         private readonly ITelemetryRepository _repository;
+        private readonly string _bootstrapServers;
 
         private readonly Dictionary<int, int> _receivedFrames = new();
         private readonly Dictionary<int, int> _expectedFrames = new();
@@ -19,10 +22,14 @@ namespace MongoConsumer.Services.Kafka
         private readonly IFlightAnalysisTriggerService _analysisTrigger;
 
         public KafkaConsumerService(
-            ITelemetryRepository repository,IFlightAnalysisTriggerService analysisTrigger)
+            ITelemetryRepository repository,
+            IFlightAnalysisTriggerService analysisTrigger,
+            IOptions<KafkaSettings> kafkaSettings)
         {
             _repository = repository;
             _analysisTrigger = analysisTrigger;
+            _bootstrapServers = kafkaSettings.Value.BootstrapServers;
+            Console.WriteLine("Kafka from ENV: " + _bootstrapServers);
         }
 
         public async Task StartListeningAsync()
@@ -36,12 +43,12 @@ namespace MongoConsumer.Services.Kafka
 
             ConsumerConfig config = new ConsumerConfig
             {
-                BootstrapServers = ConstantKafka.KAFKA_ADDRESS,
+                BootstrapServers = _bootstrapServers,
                 GroupId = ConstantKafka.GROUP_ID,
                 EnableAutoCommit = true,
-                AutoOffsetReset = AutoOffsetReset.Latest
+                AutoOffsetReset = AutoOffsetReset.Earliest
             };
-
+            Console.WriteLine(config.BootstrapServers);
             await RunKafkaListenerAsync(config, token);
         }
 
@@ -60,22 +67,39 @@ namespace MongoConsumer.Services.Kafka
 
         private async Task ListenLoopAsync(ConsumerConfig config, CancellationToken token)
         {
-            using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
+            try
             {
-                consumer.Subscribe(ConstantKafka.TOPIC_NAME);
-
-                while (!token.IsCancellationRequested)
+                using (var consumer = new ConsumerBuilder<Ignore, string>(config).Build())
                 {
-                    var result =
-                            consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
+                    consumer.Subscribe(ConstantKafka.TOPIC_NAME);
 
-                    if (result != null && result.Message != null)
+                    while (!token.IsCancellationRequested)
                     {
-                        await HandleMessageAsync(result.Message.Value);
-                    }
-                }
+                        try
+                        {
+                            var result = consumer.Consume(TimeSpan.FromSeconds(ConstantKafka.SECONDS_TO_WAIT));
 
-                consumer.Close();
+                            if (result != null && result.Message != null)
+                            {
+                                await HandleMessageAsync(result.Message.Value);
+                            }
+                        }
+                        catch (ConsumeException ex)
+                        {
+                            Console.WriteLine($"[KAFKA] Consume error: {ex.Error.Reason}");
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"[KAFKA] Handler error: {ex.Message}");
+                        }
+                    }
+
+                    consumer.Close();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[KAFKA] Consumer loop fatal error: {ex}");
             }
         }
         private async Task HandleMessageAsync(string message)

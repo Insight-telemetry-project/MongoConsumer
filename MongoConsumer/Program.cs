@@ -15,10 +15,11 @@ builder.Services.AddOpenApi();
 builder.Services.AddSingleton<IKafkaConsumerService, KafkaConsumerService>();
 builder.Services.AddSingleton<ITelemetryRepository, FlightTelemetryMongoProxy>();
 builder.Services.AddSingleton<ApplicationStartup>();
-
+builder.Services.Configure<KafkaSettings>(
+    builder.Configuration.GetSection(KafkaSettings.SectionName));
 builder.Services.AddHttpClient<IFlightAnalysisTriggerService, FlightAnalysisTriggerService>(client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7274/");
+    client.BaseAddress = new Uri("http://analyzer:8080/");
 });
 WebApplication app = builder.Build();
 
