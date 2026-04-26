@@ -19,7 +19,7 @@ builder.Services.Configure<KafkaSettings>(
     builder.Configuration.GetSection(KafkaSettings.SectionName));
 builder.Services.AddHttpClient<IFlightAnalysisTriggerService, FlightAnalysisTriggerService>(client =>
 {
-    client.BaseAddress = new Uri("http://analyzer:8080/");
+    client.BaseAddress = new Uri(builder.Configuration["Analyzer:BaseUrl"]!);
 });
 WebApplication app = builder.Build();
 
